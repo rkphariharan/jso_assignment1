@@ -9,8 +9,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Dynamic import to avoid server bundle issues
-    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const pdfjsLib = pdfjs.default ?? pdfjs;
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
     const loadingTask = pdfjsLib.getDocument({ data: buffer });
     const pdf = await loadingTask.promise;
