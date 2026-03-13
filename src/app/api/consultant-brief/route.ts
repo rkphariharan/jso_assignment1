@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callClaude, SYSTEM_PROMPTS } from '@/lib/claude';
 import { CVAnalysis, AgentAnalysis, UserProfile } from '@/lib/store';
+import { buildFallbackConsultantBrief } from '@/lib/analysisFallback';
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,8 +37,14 @@ Please write a brief that:
 Write in a professional but direct tone. Use markdown formatting.
 `.trim();
 
-    const brief = await callClaude(SYSTEM_PROMPTS.consultantBrief, userMessage);
-    return NextResponse.json({ brief });
+    try {
+      const brief = await callClaude(SYSTEM_PROMPTS.consultantBrief, userMessage);
+      return NextResponse.json({ brief });
+    } catch (modelErr) {
+      console.warn('Consultant brief fallback used:', modelErr);
+      const brief = buildFallbackConsultantBrief(cv, agent, profile);
+      return NextResponse.json({ brief });
+    }
   } catch (err) {
     console.error('Consultant brief error:', err);
     return NextResponse.json({ error: 'Brief generation failed.' }, { status: 500 });

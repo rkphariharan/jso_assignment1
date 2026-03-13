@@ -36,18 +36,27 @@ export default function UploadPage() {
     setIsExtracting(true);
 
     try {
-      if (f.type === 'application/pdf') {
+      const lowerName = f.name.toLowerCase();
+      const isPdf = f.type === 'application/pdf' || lowerName.endsWith('.pdf');
+      const isDocx =
+        f.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        lowerName.endsWith('.docx');
+      const isTxt = f.type.startsWith('text/') || lowerName.endsWith('.txt');
+
+      if (isPdf || isDocx || isTxt) {
         const fd = new FormData();
         fd.append('file', f);
         const res = await fetch('/api/extract-pdf', { method: 'POST', body: fd });
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data?.error ?? 'Failed to extract PDF text');
+          throw new Error(data?.error ?? 'Failed to extract resume text');
         }
-        setCvText(data.text ?? '');
+        if (!(data.text ?? '').trim()) {
+          throw new Error('No readable resume text found. Please paste your CV text manually.');
+        }
+        setCvText(data.text);
       } else {
-        const text = await f.text();
-        setCvText(text);
+        throw new Error('Unsupported file type. Upload PDF, DOCX, TXT, or paste text directly.');
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Failed to read file';
@@ -60,7 +69,11 @@ export default function UploadPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'application/pdf': ['.pdf'], 'text/plain': ['.txt'], 'application/msword': ['.doc', '.docx'] },
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt'],
+    },
     maxFiles: 1,
   });
 
@@ -84,6 +97,7 @@ export default function UploadPage() {
 
       store.saveProfile(profile);
       store.saveCVAnalysis({ ...data, rawText: cvText });
+      store.clearAgentAnalysis();
       toast.success('CV analysed successfully!');
       router.push('/agent');
     } catch (e: unknown) {
@@ -175,7 +189,7 @@ export default function UploadPage() {
             <input {...getInputProps()} />
             {file
               ? <div className="flex items-center justify-center gap-2 text-brand-600"><FileText size={20} />{file.name}</div>
-              : <div className="space-y-1"><Upload size={28} className="mx-auto text-gray-400" /><p className="text-sm text-gray-500">Drag and drop PDF/TXT, or click to browse</p></div>
+              : <div className="space-y-1"><Upload size={28} className="mx-auto text-gray-400" /><p className="text-sm text-gray-500">Drag and drop PDF/DOCX/TXT, or click to browse</p></div>
             }
           </div>
           {isExtracting && (

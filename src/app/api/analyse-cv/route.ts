@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { callClaude, SYSTEM_PROMPTS } from '@/lib/claude';
+import { callClaude, parseModelJson, SYSTEM_PROMPTS } from '@/lib/claude';
 import { UserProfile } from '@/lib/store';
+import { buildFallbackCvAnalysis } from '@/lib/analysisFallback';
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,15 +22,28 @@ ${cvText.slice(0, 8000)}
 Return the JSON analysis as specified.
 `.trim();
 
-    const raw = await callClaude(SYSTEM_PROMPTS.cvAnalysis, userMessage);
+    try {
+      const raw = await callClaude(SYSTEM_PROMPTS.cvAnalysis, userMessage);
+      const parsed = parseModelJson<Record<string, unknown>>(raw);
 
-    // Strip any accidental markdown fences
-    const clean = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-    const parsed = JSON.parse(clean);
+      const safe = {
+        atsScore: Number(parsed.atsScore ?? 0),
+        jobSearchScore: Number(parsed.jobSearchScore ?? 0),
+        impactScore: Number(parsed.impactScore ?? 0),
+        strengths: Array.isArray(parsed.strengths) ? parsed.strengths.filter(Boolean) : [],
+        weaknesses: Array.isArray(parsed.weaknesses) ? parsed.weaknesses.filter(Boolean) : [],
+        missingKeywords: Array.isArray(parsed.missingKeywords) ? parsed.missingKeywords.filter(Boolean) : [],
+      };
 
-    return NextResponse.json(parsed);
+      return NextResponse.json(safe);
+    } catch (modelErr) {
+      console.warn('CV analysis fallback used:', modelErr);
+      const fallback = buildFallbackCvAnalysis(cvText, profile);
+      return NextResponse.json(fallback);
+    }
   } catch (err) {
     console.error('CV analysis error:', err);
-    return NextResponse.json({ error: 'CV analysis failed. Check your API key and try again.' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'CV analysis failed.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

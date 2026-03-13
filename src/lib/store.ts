@@ -86,6 +86,10 @@ export const store = {
 
   saveAgentAnalysis: (a: AgentAnalysis) => save(KEYS.agentAnalysis, a),
   loadAgentAnalysis: () => load<AgentAnalysis>(KEYS.agentAnalysis),
+  clearAgentAnalysis: () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(KEYS.agentAnalysis);
+  },
 
   clearAll: () => {
     if (typeof window === 'undefined') return;

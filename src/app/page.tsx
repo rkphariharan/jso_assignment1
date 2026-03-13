@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import ScoreRing from '@/components/ScoreRing';
 import { store, UserProfile, CVAnalysis, AgentAnalysis } from '@/lib/store';
-import { categoryColor, scoreBg, scoreColor } from '@/lib/utils';
+import { categoryColor, scoreBg } from '@/lib/utils';
 import { ArrowRight, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import Link from 'next/link';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import ScoreRing from '@/components/ScoreRing';
 import { store, AgentAnalysis, CVAnalysis, UserProfile } from '@/lib/store';
@@ -23,7 +23,7 @@ export default function AgentPage() {
     setAgent(store.loadAgentAnalysis());
   }, []);
 
-  const runAgent = async () => {
+  const runAgent = useCallback(async () => {
     if (!cv || !profile) { toast.error('Upload your CV first.'); router.push('/upload'); return; }
     setLoading(true);
     try {
@@ -43,7 +43,13 @@ export default function AgentPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [cv, profile, router]);
+
+  useEffect(() => {
+    if (!loading && cv && profile && !agent) {
+      runAgent();
+    }
+  }, [agent, cv, loading, profile, runAgent]);
 
   return (
     <AppShell>

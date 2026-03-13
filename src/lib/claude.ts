@@ -1,8 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClient() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY is not configured');
+  }
+  return new Anthropic({ apiKey });
+}
 
 export async function callClaude(systemPrompt: string, userMessage: string): Promise<string> {
+  const client = getClient();
   const message = await client.messages.create({
     model: 'claude-opus-4-5',
     max_tokens: 4096,
@@ -13,6 +20,26 @@ export async function callClaude(systemPrompt: string, userMessage: string): Pro
   const block = message.content[0];
   if (block.type === 'text') return block.text;
   return '';
+}
+
+export function parseModelJson<T>(raw: string): T {
+  const clean = raw
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(clean) as T;
+  } catch {
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace <= firstBrace) {
+      throw new Error('Model returned invalid JSON.');
+    }
+    const candidate = clean.slice(firstBrace, lastBrace + 1);
+    return JSON.parse(candidate) as T;
+  }
 }
 
 export const SYSTEM_PROMPTS = {
