@@ -39,11 +39,11 @@ Write in a professional but direct tone. Use markdown formatting.
 
     try {
       const brief = await callClaude(SYSTEM_PROMPTS.consultantBrief, userMessage);
-      return NextResponse.json({ brief });
+      return NextResponse.json({ brief }, { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     } catch (modelErr) {
       console.warn('Consultant brief fallback used:', modelErr);
       const brief = buildFallbackConsultantBrief(cv, agent, profile);
-      return NextResponse.json({ brief });
+      return NextResponse.json({ brief }, { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
   } catch (err) {
     console.error('Consultant brief error:', err);
