@@ -14,9 +14,12 @@ export default function DashboardPage() {
   const [agent, setAgent] = useState<AgentAnalysis | null>(null);
 
   useEffect(() => {
-    setProfile(store.loadProfile());
-    setCv(store.loadCVAnalysis());
-    setAgent(store.loadAgentAnalysis());
+    // Clear all cached data whenever the user visits the home/dashboard page
+    // so stale test data never shows up on refresh or navigation
+    store.clearAll();
+    setProfile(null);
+    setCv(null);
+    setAgent(null);
   }, []);
 
   const completedTasks = agent?.priorityActions.filter(a => a.completed).length ?? 0;
